@@ -1,74 +1,75 @@
-import { GetStatementOperationUseCase } from './GetStatementOperationUseCase';
-
-import { IUsersRepository } from '../../../users/repositories/IUsersRepository';
-import { IStatementsRepository } from '../../repositories/IStatementsRepository';
-import { InMemoryUsersRepository } from '../../../users/repositories/in-memory/InMemoryUsersRepository';
-import { InMemoryStatementsRepository } from '../../repositories/in-memory/InMemoryStatementsRepository';
-
-import { User } from '../../../users/entities/User';
-import { OperationType, Statement}  from '../../entities/Statement';
-import {GetStatementOperationError} from "./GetStatementOperationError";
-
+import { InMemoryUsersRepository } from "../../../users/repositories/in-memory/InMemoryUsersRepository";
+import { IUsersRepository } from "../../../users/repositories/IUsersRepository";
+import { OperationType } from "../../entities/Statement";
+import { InMemoryStatementsRepository } from "../../repositories/in-memory/InMemoryStatementsRepository";
+import { IStatementsRepository } from "../../repositories/IStatementsRepository";
+import { GetStatementOperationError } from "./GetStatementOperationError";
+import { GetStatementOperationUseCase } from "./GetStatementOperationUseCase";
 
 let usersRepository: IUsersRepository;
-let statementRepository: IStatementsRepository;
-
+let statementsRepository: IStatementsRepository;
 let getStatementOperationUseCase: GetStatementOperationUseCase;
 
-describe('Get Statement operation', () => {
+describe("GetStatementOperation", () => {
   beforeEach(() => {
     usersRepository = new InMemoryUsersRepository();
-    statementRepository = new InMemoryStatementsRepository();
-
-    getStatementOperationUseCase = new GetStatementOperationUseCase(usersRepository, statementRepository);
+    statementsRepository = new InMemoryStatementsRepository();
+    getStatementOperationUseCase = new GetStatementOperationUseCase(
+      usersRepository,
+      statementsRepository
+    );
   });
 
-  it('should be able to get a statement operation', async () => {
-    const user: User = await usersRepository.create({
-      email: 'john@do.com',
-      name: 'John do',
-      password: '123123',
+  it("should be able to get the statement operation", async () => {
+    const user = await usersRepository.create({
+      email: "test@test.com",
+      name: "test",
+      password: "1234",
     });
 
-    const statement: Statement = await statementRepository.create({
-      user_id: user.id,
+    const statement = await statementsRepository.create({
+      amount: 100,
+      description: "test",
       type: OperationType.DEPOSIT,
-      amount: 1000,
-      description: 'Test'
+      user_id: user.id as string,
     });
 
-    const statementOperation = await getStatementOperationUseCase.execute({
-      user_id: user.id,
-      statement_id: statement.id
+    const response = await getStatementOperationUseCase.execute({
+      statement_id: statement.id as string,
+      user_id: user.id as string,
     });
 
-    expect(statementOperation).toBe(statement);
+    expect(response).toBe(statement);
   });
 
-  it('should not be able to get a statement operation with non existent user', async () => {
-    const statement: Statement = await statementRepository.create({
-      user_id: 'no-user',
-      type: OperationType.DEPOSIT,
-      amount: 1000,
-      description: 'Test'
-    });
+  it("should be able to get the statement operation", async () => {
+    expect(async () => {
+      const statement = await statementsRepository.create({
+        amount: 100,
+        description: "test",
+        type: OperationType.DEPOSIT,
+        user_id: "non-existent",
+      });
 
-    await expect(getStatementOperationUseCase.execute({
-      user_id: 'no-user',
-      statement_id: statement.id
-    })).rejects.toBeInstanceOf(GetStatementOperationError.UserNotFound);
+      await getStatementOperationUseCase.execute({
+        statement_id: statement.id as string,
+        user_id: "non-existent",
+      });
+    }).rejects.toBeInstanceOf(GetStatementOperationError.UserNotFound);
   });
 
-  it('should not be able to get a statement operation with non existent statement', async () => {
-    const user: User = await usersRepository.create({
-      email: 'john@do.com',
-      name: 'John do',
-      password: '123123',
-    });
+  it("should be able to get the statement operation", async () => {
+    expect(async () => {
+      const user = await usersRepository.create({
+        email: "test@test.com",
+        name: "test",
+        password: "1234",
+      });
 
-    await expect(getStatementOperationUseCase.execute({
-      user_id: user.id,
-      statement_id: 'no-statement'
-    })).rejects.toBeInstanceOf(GetStatementOperationError.StatementNotFound);
+      await getStatementOperationUseCase.execute({
+        statement_id: "non-existent",
+        user_id: user.id as string,
+      });
+    }).rejects.toBeInstanceOf(GetStatementOperationError.StatementNotFound);
   });
 });
